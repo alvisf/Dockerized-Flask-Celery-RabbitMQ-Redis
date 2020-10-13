@@ -2,7 +2,7 @@
 
 This tutorial explains how to configure Flask, Celery, RabbitMQ and Redis, together with Docker to build a web service that dynamically generates content and loads this contend when it is ready to be displayed. We'll focus mainly on Celery and the servies that surround it. Docker is a bit more straightforward.
 
-## Part 1 - Project Structure
+## Project Structure
 
 The finished project structure will be as follows:
 
@@ -23,7 +23,7 @@ The finished project structure will be as follows:
 └── requirements.txt
 ```
 
-## Part 2 - Creating the Flask application
+## Creating the Flask application
 
 First we create an folder for our app. For this example, our folder is simply called `app`. Within this folder, create an `app.py` file and an empty folder named `templates` where our HTML templates will be stored.
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
 We see that our page load takes a while to complete because the request to `result.png` doesn't return until the image generation has completed.
 
-## Part 3 - Expanding our web app to use Celery
+## Expanding our web app to use Celery
 
 In our `app` directory, create the `tasks.py` file that will contain our Celery tasks. We add the neccessary Celery includes:
 
@@ -229,7 +229,7 @@ def result():
 
 At this stage we have a working web app with asynchronous image generation.
 
-## Part 4 - Using Docker to package our application
+## Using Docker to package our application
 
 Our app requires 4 separate containers for each of our servies:
 
