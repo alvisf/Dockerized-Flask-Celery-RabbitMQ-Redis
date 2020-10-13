@@ -1,17 +1,18 @@
-# Using Celery with Flask for Asynchronous Content Generation
+# Using Celery with Flask for Cropping Images
 
 This tutorial explains how to configure Flask, Celery, RabbitMQ and Redis, together with Docker to build a web service that dynamically generates content and loads this contend when it is ready to be displayed. We'll focus mainly on Celery and the servies that surround it. Docker is a bit more straightforward.
 
 ## Contents
 
-1. [Part 1 - Project Structure](https://github.com/timlardner/Docker-FlaskCeleryRabbitRedis/tree/readme#part-1---project-structure)
-1. [Part 2 - Creating the Flask application](https://github.com/timlardner/Docker-FlaskCeleryRabbitRedis/tree/readme#part-2---creating-the-flask-application)
-1. [Part 3 - Expanding our web app to use Celery](https://github.com/timlardner/Docker-FlaskCeleryRabbitRedis/tree/readme#part-3---expanding-our-web-app-to-use-celery)
-1. [Part 4 - Using Docker to package our application](https://github.com/timlardner/Docker-FlaskCeleryRabbitRedis/tree/readme#part-4---using-docker-to-package-our-application)
+1. [Part 1 - Project Structure](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-1---project-structure)
+1. [Part 2 - Creating the Flask application](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-2---creating-the-flask-application)
+1. [Part 3 - Expanding our web app to use Celery](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-3---expanding-our-web-app-to-use-celery)
+1. [Part 4 - Using Docker to package our application](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-4---using-docker-to-package-our-application)
 
 ## Part 1 - Project Structure
 
 The finished project structure will be as follows:
+
 ```
 .
 ├── Dockerfile
@@ -21,7 +22,7 @@ The finished project structure will be as follows:
 │   ├── app.py
 │   ├── tasks.py
 │   └── templates
-│       ├── home.html
+│       ├── download.html
 │       └── index.html
 ├── scripts
 │   ├── run_celery.sh
@@ -60,50 +61,34 @@ def image_page():
 
 ```python
 @APP.route('/result.png')
-def result():
-	import time
-	import random
-    import datetime
-    from io import BytesIO
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-	from matplotlib.figure import Figure
-	from matplotlib.dates import DateFormatter
+def image_demension(img):
+    time.sleep(2)
+    im = Image.open(img)
+    width, height = im.size
+    left = 4
+    top = height / 5
+    right = 154
+    bottom = 3 * height / 5
 
-	time.sleep(2)
-    fig = Figure()
-    ax_handle = fig.add_subplot(111)
-    x_axis = []
-    y_axis = []
-    now = datetime.datetime.now()
-    delta = datetime.timedelta(days=1)
-    current_task.update_state(state='PROGRESS', meta={'current':0.5})
-    for _ in range(10):
-        x_axis.append(now)
-        now += delta
-        y_axis.append(random.randint(0, 1000))
-    ax_handle.plot_date(x_axis, y_axis, '-')
-    ax_handle.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
-    fig.autofmt_xdate()
-    canvas = FigureCanvas(fig)
-    current_task.update_state(state='PROGRESS', meta={'current':0.8})
-    png_output = BytesIO()
-    canvas.print_png(png_output)
-    out = png_output.getvalue()
-    response = make_response(out)
-    response.headers['Content-Type'] = 'image/png'
-    return response
+    # Cropped image of above dimension  \
+    im1 = im.crop((left, top, right, bottom))
+    newsize = (300, 300)
+    im1 = im1.resize(newsize)
+    width, height = im1.size
+    location=os.path.join('static/worker-img','cropped_img.'+im.format.lower())
+    im1.save(os.path.join('static/worker-img','cropped_img.'+im.format.lower()))
+    print(width,height)
+    print("pass")
+
+    return location
 ```
 
 Next, we need to open our `templates` folder and create the following two templates:
 
-#### home.html
-```html
-<a href="{{ url_for('.image_page') }}">Whatever you click to get data from Strava...</a>
-```
-
 #### index.html
+
 ```html
-<div id="imgpl"><img src="result.png"></div>
+<div id="imgpl"><img src="result.png?{{JOBID}}" /></div>
 ```
 
 If we add the following code then run the script, we can load up our webpage and test the image generation.
@@ -111,7 +96,7 @@ If we add the following code then run the script, we can load up our webpage and
 ```python
 if __name__ == '__main__':
     APP.run(host='0.0.0.0')
-``` 
+```
 
 We see that our page load takes a while to complete because the request to `result.png` doesn't return until the image generation has completed.
 
@@ -155,30 +140,26 @@ Next, we define the asynchronous function and move the image generation code fro
 
 ```python
 @CELERY.task()
-def get_data_from_strava():
-    current_task.update_state(state='PROGRESS', meta={'current':0.1})
+def image_demension(img):
     time.sleep(2)
-    current_task.update_state(state='PROGRESS', meta={'current':0.3})
-    fig = Figure()
-    ax_handle = fig.add_subplot(111)
-    x_axis = []
-    y_axis = []
-    now = datetime.datetime.now()
-    delta = datetime.timedelta(days=1)
-    current_task.update_state(state='PROGRESS', meta={'current':0.5})
-    for _ in range(10):
-        x_axis.append(now)
-        now += delta
-        y_axis.append(random.randint(0, 1000))
-    ax_handle.plot_date(x_axis, y_axis, '-')
-    ax_handle.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
-    fig.autofmt_xdate()
-    canvas = FigureCanvas(fig)
-    current_task.update_state(state='PROGRESS', meta={'current':0.8})
-    png_output = BytesIO()
-    canvas.print_png(png_output)
-    out = png_output.getvalue()
-    return out
+    im = Image.open(img)
+    width, height = im.size
+    left = 4
+    top = height / 5
+    right = 154
+    bottom = 3 * height / 5
+
+    # Cropped image of above dimension  \
+    im1 = im.crop((left, top, right, bottom))
+    newsize = (300, 300)
+    im1 = im1.resize(newsize)
+    width, height = im1.size
+    location=os.path.join('static/worker-img','cropped_img.'+im.format.lower())
+    im1.save(os.path.join('static/worker-img','cropped_img.'+im.format.lower()))
+    print(width,height)
+    print("pass")
+
+    return location
 ```
 
 Instead of building a response, we return the binary image which will be stored on Redis. We also update the task at various points with a progress indicator that can be queried from the Flask app.
@@ -204,7 +185,7 @@ def progress():
     return '{}'
 ```
 
-Extend our `templates/home.html` with the following Javascript code:
+Extend our `templates/download.html` with the following Javascript code:
 
 ```JavaScript
 <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
@@ -214,9 +195,15 @@ function poll() {
         dataType: "json"
         , success: function(resp) {
             if(resp.progress >= 0.99) {
-                $("#imgpl").html('<img src="result.png?jobid={{JOBID}}">');
-                return;
-            } else {
+                  $("#wrapper").html('');
+                  $.get("result.png?jobid={{JOBID}}", function(data, status){
+                    end_file=data;
+                    $("#imgpl").html('<img src='+end_file+'>');
+                    console.log("success")
+                    });
+                    return;
+            }
+            else {
                 setTimeout(poll, 500.0);
             }
         }
@@ -234,13 +221,15 @@ The `poll` function repeatedly requires the `/progress` route of our web app and
 ```python
 @APP.route('/result.png')
 def result():
+    '''
+    Pull our generated .png and return it
+    '''
     jobid = request.values.get('jobid')
     if jobid:
         job = tasks.get_job(jobid)
         png_output = job.get()
-        response = make_response(png_output)
-        response.headers['Content-Type'] = 'image/png'
-        return response
+        png_output="../"+png_output
+        return png_output
     else:
         return 404
 ```
@@ -250,10 +239,11 @@ At this stage we have a working web app with asynchronous image generation.
 ## Part 4 - Using Docker to package our application
 
 Our app requires 4 separate containers for each of our servies:
-* Flask
-* Celery
-* RabbitMQ
-* Redis
+
+- Flask
+- Celery
+- RabbitMQ
+- Redis
 
 Docker provides prebuilt containers for [RabbitMQ](https://hub.docker.com/_/rabbitmq/) and [Redis](https://hub.docker.com/_/redis/). These both work well and we'll use them as is.
 
@@ -273,7 +263,7 @@ WORKDIR /app/
 RUN pip install -r requirements.txt
 
 # Create an unprivileged user for running our Python code.
-RUN adduser --disabled-password --gecos '' app  
+RUN adduser --disabled-password --gecos '' app
 ```
 
 We pull all of this together with a Docker compose file, `docker-compose.yml`. While early versions of compose needed to expose ports for each service, we can link the services together using the `links` keyword. The `depends` keyword ensures that all of our services start in the correct order.
