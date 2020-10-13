@@ -2,13 +2,6 @@
 
 This tutorial explains how to configure Flask, Celery, RabbitMQ and Redis, together with Docker to build a web service that dynamically generates content and loads this contend when it is ready to be displayed. We'll focus mainly on Celery and the servies that surround it. Docker is a bit more straightforward.
 
-## Contents
-
-1. [Part 1 - Project Structure](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-1---project-structure)
-1. [Part 2 - Creating the Flask application](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-2---creating-the-flask-application)
-1. [Part 3 - Expanding our web app to use Celery](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-3---expanding-our-web-app-to-use-celery)
-1. [Part 4 - Using Docker to package our application](https://github.com/alvisf/Dockerized-Flask-Celery-RabbitMQ-Redis/tree/readme#part-4---using-docker-to-package-our-application)
-
 ## Part 1 - Project Structure
 
 The finished project structure will be as follows:
