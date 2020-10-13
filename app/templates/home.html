@@ -1,0 +1,43 @@
+<style>
+#prog {
+width: 400px;
+border: 1px solid red;
+height: 20px;
+}
+#bar {
+width: 0px;
+background-color: blue;
+height: 20px;
+}
+</style>
+<h3>Awesome Asynchronous Image Generation</h3>
+<div id="imgpl">Image not ready. Please wait.</div>
+<div id="wrapper"><div id="prog"><div id="bar"></div></div></div>
+<script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+<script>
+function poll() {
+    $.ajax("{{url_for('.progress', jobid=JOBID)}}", {
+        dataType: "json"
+        , success: function(resp) {
+            $("#bar").css({width: $("#prog").width() * resp.progress});
+            if(resp.progress >= 0.99) {
+                $("#wrapper").html('');
+                $("#imgpl").html('<img src="result.png?jobid={{JOBID}}">');
+
+                
+                return;
+            } else {
+                setTimeout(poll, 500.0);
+            }
+
+        }
+    });
+
+}
+
+$(function() {
+    var JOBID = "{{ JOBID }}";
+    poll();
+
+});
+</script>
