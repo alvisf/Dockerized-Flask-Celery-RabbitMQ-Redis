@@ -1,6 +1,6 @@
 # Using Celery with Flask for Cropping Images
 
-This tutorial explains how to configure Flask, Celery, RabbitMQ and Redis, together with Docker to build a web service that dynamically generates content and loads this contend when it is ready to be displayed. We'll focus mainly on Celery and the servies that surround it. Docker is a bit more straightforward.
+This explains how to configure Flask, Celery, RabbitMQ and Redis, together with Docker to build a web service that dynamically generates content and loads this contend when it is ready to be displayed. We'll focus mainly on Celery and the servies that surround it. Docker is a bit more straightforward.
 
 ## Project Structure
 
@@ -37,7 +37,7 @@ from flask import render_template, make_response
 APP = Flask(__name__)
 ```
 
-We define three routes for Flask to implement: a landing page, a secondary page that embeds and image, and a route for the image itself. Our image route generates an image dynamically. For this example, it generates a plot using `matplotlib` and some delays are also included so that the time taken to create the image is more apparent.
+We define three routes for Flask to implement: a landing page, a secondary page that embeds and image, and a route for the image itself. Our image route crops an image dynamically. For this example, it crops an image using `pillow`, and some delays are also included so that the time taken to create the image is more apparent.
 
 ```python
 @APP.route('/')
