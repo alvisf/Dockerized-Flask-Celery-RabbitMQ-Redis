@@ -1,34 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
 <style>
-  #prog {
-  width: 400px;
-  border: 1px solid red;
-  height: 20px;
-  }
-  #bar {
-  width: 0px;
-  background-color: blue;
-  height: 20px;
-  }
-  </style>
-  <h3>Image Croping</h3>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+</style>
+</head>
+<body>
+<table style = "margin-top: 100px;">
+  <tr>
+    <th>Description</th>
+    <th>Start Time</th>
+    <th>End Time</th>
+    <th>Link</th>
+  </tr>
+  <tr>
+    <td>API</td>
+    <td>{{start_time}}</td>
+    <td id = "api_time2"></td>
+    <td id = "download_img"></td>
+  </tr>
+  <tr>
+    <td>Worker</td>
+    <td>{{start_time}}</td>
+    <td id = "w_time2"></td>
+    <td>-</td>
+  </tr>
+</table>
+  <!-- <h3>Image Croping</h3>
   <div id="imgpl">Image not ready. Please wait.
+   
 
-  </div>
-  <div id="wrapper"><div id="prog"><div id="bar"></div></div></div>
+  </div> -->
+  <!-- <div id=”imgpl”><img src="result.png?{{JOBID}}" /></div> -->
+ <!-- <div id="wrapper" ><div id="prog"><div id="bar"></div></div></div>  -->
   <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
   <script>
+
 
 var end_file;
   function poll() {
       $.ajax("{{url_for('.progress', jobid=JOBID)}}", {
           dataType: "json"
           , success: function(resp) {
-              $("#bar").css({width: $("#prog").width() * resp.progress});
               if(resp.progress >= 0.99) {
-                  $("#wrapper").html('');
+                //   $("#wrapper").html('');
                   $.get("result.png?jobid={{JOBID}}", function(data, status){
                     end_file=data;
+                    $("#api_time2").html(resp.time);
+                    $("#w_time2").html(resp.time);
                     $("#imgpl").html('<img src='+end_file+'>');
+                    $("#download_img").html('<a href = '+end_file+' download>Download</a>');
                     console.log("success")
                     });           
                   return;
@@ -49,3 +79,5 @@ var end_file;
   
   });
   </script>
+  </body>
+  </html>
