@@ -23,7 +23,7 @@ def index():
         img.save(os.path.join(APP.config['UPLOAD_FOLDER'],img.filename))
         loc = "static/worker-img/"+img.filename
         job = tasks.image_demension.delay(loc)
-        return render_template("download.html",JOBID=job.id)
+        return render_template("download.html",JOBID=job.id,start_time = current_time)
 
 
 @APP.route('/progress')
@@ -40,9 +40,12 @@ def progress():
                 progress=job.result['current'],
             ))
         elif job.state == 'SUCCESS':
+            now = datetime.now()
+            current_time = now.strftime("%H:%M:%S")
             return json.dumps(dict(
                 state=job.state,
                 progress=1.0,
+                time = current_time
             ))
     return '{}'
 
@@ -54,13 +57,13 @@ def result():
     jobid = request.values.get('jobid')
     if jobid:
         job = tasks.get_job(jobid)
+        
         png_output = job.get()
         png_output="../"+png_output
         return png_output
+            
     else:
         return 404
-
-
 
 
 if __name__ == '__main__':
