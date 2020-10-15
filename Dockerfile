@@ -9,6 +9,7 @@ WORKDIR /app/
 # install python dependencies
 RUN pip install -r requirements.txt
 
+# install python Pillow
 RUN pip install Pillow
 
 # create unprivileged user
