@@ -1,5 +1,4 @@
-msgpack-python
-celery[redis]
-# matplotlib
-flask
-Pillow==7.2.0
+flask==3.1.1
+celery[redis]==5.4.0
+msgpack==1.1.0
+Pillow==11.2.1

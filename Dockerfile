@@ -1,17 +1,11 @@
-FROM python:latest
+FROM python:3.12-slim
 
-# add requirements.txt to the image
-ADD requirements.txt /app/requirements.txt
+WORKDIR /app
 
-# set working directory to /app/
-WORKDIR /app/
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# install python dependencies
-RUN pip install -r requirements.txt
+COPY . .
 
-# install python Pillow
-RUN pip install Pillow
-
-# create unprivileged user
-RUN adduser --disabled-password --gecos '' app  
-
+RUN adduser --disabled-password --gecos '' app
+USER app

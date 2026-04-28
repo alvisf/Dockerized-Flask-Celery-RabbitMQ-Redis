@@ -1,41 +1,56 @@
-version: '3'
-
-services:  
-
+services:
   redis:
-    image: redis:latest
-    hostname: redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   rabbit:
-    hostname: rabbit
-    image: rabbitmq:latest
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=mypass
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-mypass}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    hostname: web
-    command: ./scripts/run_web.sh
+    build: .
+    command: python app/app.py
+    restart: unless-stopped
     volumes:
-      - .:/app 
+      - uploads:/app/app/static/worker-img
     ports:
       - "5000:5000"
-    links:
-      - rabbit
-      - redis
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-mypass}@rabbit//
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
 
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ./scripts/run_celery.sh
+    build: .
+    command: celery -A app.tasks worker --loglevel INFO
+    restart: unless-stopped
     volumes:
-      - .:/app
-    links:
-      - rabbit
-      - redis
+      - uploads:/app/app/static/worker-img
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-mypass}@rabbit//
     depends_on:
-      - rabbit
+      redis:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+
+volumes:
+  uploads:

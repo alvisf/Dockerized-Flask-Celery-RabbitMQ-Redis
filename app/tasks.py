@@ -1,52 +1,35 @@
-''' Tasks related to our celery functions '''
-
-import time
-import random
-import datetime
-
-from io import BytesIO
-from celery import Celery, current_task
-from celery.result import AsyncResult
-
-from PIL import Image  
 import os
 import time
 
-REDIS_URL = 'redis://redis:6379/0'
-BROKER_URL = 'amqp://admin:mypass@rabbit//'
+from celery import Celery
+from celery.result import AsyncResult
+from PIL import Image
 
-CELERY = Celery('tasks',
-                backend=REDIS_URL,
-                broker=BROKER_URL)
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+BROKER_URL = os.environ.get("BROKER_URL", "amqp://admin:mypass@rabbit//")
 
-CELERY.conf.accept_content = ['json', 'msgpack']
-CELERY.conf.result_serializer = 'msgpack'
+celery = Celery("tasks", backend=REDIS_URL, broker=BROKER_URL)
+celery.conf.accept_content = ["json", "msgpack"]
+celery.conf.result_serializer = "msgpack"
+
 
 def get_job(job_id):
-    '''
-    To be called from our web app.
-    The job ID is passed and the celery job is returned.
-    '''
-    return AsyncResult(job_id, app=CELERY)
+    return AsyncResult(job_id, app=celery)
 
-@CELERY.task()
-def image_demension(img):
-    time.sleep(2)
-    im = Image.open(img)  
-    width, height = im.size  
-    left = 4
-    top = height / 5
-    right = 154
-    bottom = 3 * height / 5
 
-    # Cropped image of above dimension  \
-    im1 = im.crop((left, top, right, bottom)) 
-    newsize = (300, 300) 
-    im1 = im1.resize(newsize) 
-    width, height = im1.size  
-    location=os.path.join('static/worker-img','cropped_img.'+im.format.lower())
-    im1.save(os.path.join('static/worker-img','cropped_img.'+im.format.lower()))   
-    print(width,height)
-    print("pass")
+@celery.task()
+def crop_image(img_path):
+    time.sleep(2)  # simulate processing delay
 
-    return location
+    im = Image.open(img_path)
+    width, height = im.size
+
+    left, right = 4, min(154, width)
+    top, bottom = height // 5, 3 * height // 5
+    cropped = im.crop((left, top, right, bottom)).resize((300, 300))
+
+    ext = (im.format or "png").lower()
+    out_path = os.path.join(os.path.dirname(img_path), f"cropped_img.{ext}")
+    cropped.save(out_path)
+
+    return out_path

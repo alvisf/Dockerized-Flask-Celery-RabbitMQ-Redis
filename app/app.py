@@ -1,67 +1,54 @@
 import json
-from flask import Flask, request
-from flask import render_template, make_response
-import tasks
 import os
-from PIL import Image
-from datetime import datetime
 
-APP = Flask(__name__)
-APP.config['UPLOAD_FOLDER'] = 'static/worker-img'
+from flask import Flask, request, render_template, abort
 
-@APP.route('/',methods = ['GET','POST'])
-def index(): 
-    '''
-    Render Home Template and Post request to Upload the image to Celery task.
-    '''
-    if request.method == 'GET':
+from . import tasks
+
+app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = os.path.join("app", "static", "worker-img")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "GET":
         return render_template("index.html")
-    if request.method == 'POST':
-        img = request.files['image']
-        now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
-        img.save(os.path.join(APP.config['UPLOAD_FOLDER'],img.filename))
-        loc = "static/worker-img/"+img.filename
-        job = tasks.image_demension.delay(loc)
-        return render_template("download.html",JOBID=job.id)
+
+    img = request.files.get("image")
+    if not img or img.filename == "":
+        return render_template("index.html", error="No file selected"), 400
+
+    path = os.path.join(app.config["UPLOAD_FOLDER"], img.filename)
+    img.save(path)
+    job = tasks.crop_image.delay(path)
+    return render_template("download.html", JOBID=job.id)
 
 
-@APP.route('/progress')
+@app.route("/progress")
 def progress():
-    '''
-    Get the progress of our task and return it using a JSON object
-    '''
-    jobid = request.values.get('jobid')
-    if jobid:
-        job = tasks.get_job(jobid)
-        if job.state == 'PROGRESS':
-            return json.dumps(dict(
-                state=job.state,
-                progress=job.result['current'],
-            ))
-        elif job.state == 'SUCCESS':
-            return json.dumps(dict(
-                state=job.state,
-                progress=1.0,
-            ))
-    return '{}'
+    jobid = request.values.get("jobid")
+    if not jobid:
+        return json.dumps({}), 400
 
-@APP.route('/result.png')
+    job = tasks.get_job(jobid)
+    if job.state == "PROGRESS":
+        return json.dumps({"state": job.state, "progress": job.result["current"]})
+    if job.state == "SUCCESS":
+        return json.dumps({"state": job.state, "progress": 1.0})
+    return json.dumps({"state": job.state, "progress": 0.0})
+
+
+@app.route("/result.png")
 def result():
-    '''
-    Pull our generated .png binary from redis and return it
-    '''
-    jobid = request.values.get('jobid')
-    if jobid:
-        job = tasks.get_job(jobid)
-        png_output = job.get()
-        png_output="../"+png_output
-        return png_output
-    else:
-        return 404
+    jobid = request.values.get("jobid")
+    if not jobid:
+        abort(404)
+
+    job = tasks.get_job(jobid)
+    png_output = job.get()
+    return f"../{png_output}"
 
 
-
-
-if __name__ == '__main__':
-    APP.run(host='0.0.0.0')
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")

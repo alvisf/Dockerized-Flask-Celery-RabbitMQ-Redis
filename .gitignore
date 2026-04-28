@@ -1,4 +1,7 @@
-__pycache__
+__pycache__/
 *.pyc
-.idea
-.vscode
+.idea/
+.vscode/
+.env
+app/static/worker-img/*
+!app/static/worker-img/.gitkeep
